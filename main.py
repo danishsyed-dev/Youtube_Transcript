@@ -9,6 +9,7 @@ from datetime import datetime
 class YouTubeTranscriptExtractor:
     def __init__(self):
         self.supported_languages = ['en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'ko', 'zh']
+        self.api = YouTubeTranscriptApi()
 
     def extract_video_id(self, url):
         """Extract video ID from various YouTube URL formats"""
@@ -33,13 +34,13 @@ class YouTubeTranscriptExtractor:
         """Get transcript for a video with language preferences"""
         try:
             # Try to get transcript in preferred languages
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            transcript_list = self.api.list(video_id)
 
             # First try manually created transcripts in preferred languages
             for lang in languages:
                 try:
                     transcript = transcript_list.find_manually_created_transcript([lang])
-                    return transcript.fetch(), lang, 'manual'
+                    return transcript.fetch().to_raw_data(), lang, 'manual'
                 except:
                     continue
 
@@ -47,20 +48,20 @@ class YouTubeTranscriptExtractor:
             for lang in languages:
                 try:
                     transcript = transcript_list.find_generated_transcript([lang])
-                    return transcript.fetch(), lang, 'auto-generated'
+                    return transcript.fetch().to_raw_data(), lang, 'auto-generated'
                 except:
                     continue
 
             # If no preferred language found, get any available transcript
             try:
                 transcript = transcript_list.find_transcript(['en'])
-                return transcript.fetch(), 'en', 'fallback'
+                return transcript.fetch().to_raw_data(), 'en', 'fallback'
             except:
                 # Get first available transcript
                 available_transcripts = list(transcript_list)
                 if available_transcripts:
                     transcript = available_transcripts[0]
-                    return transcript.fetch(), transcript.language_code, 'available'
+                    return transcript.fetch().to_raw_data(), transcript.language_code, 'available'
                 else:
                     raise Exception("No transcripts available")
 
@@ -116,7 +117,7 @@ class YouTubeTranscriptExtractor:
     def get_video_info(self, video_id):
         """Get basic video information"""
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            transcript_list = self.api.list(video_id)
             available_languages = []
             for transcript in transcript_list:
                 lang_info = {
